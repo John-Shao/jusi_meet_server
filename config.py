@@ -9,6 +9,7 @@ class Settings(BaseSettings):
     # 接收VeRTC推送音频流的RTMP服务器地址和端口
     audio_rtmp_host: str
     audio_rtmp_port: int
+    audio_rtsp_port: int
     # VolcEngine RTC 配置
     volc_rtc_app_id: str
     volc_rtc_app_key: str

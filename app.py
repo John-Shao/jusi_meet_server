@@ -28,16 +28,19 @@ async def handle_app_request(request: RequestMessageBase):
 # 处理用户加入房间事件
 async def handle_camera_join_room(request: RequestMessageBase, req_data: Dict[str, Any]):
     data = CameraJoinRequest(**req_data)
-    rtmp_url = f"rtmp://{settings.audio_rtmp_host}:{settings.audio_rtmp_port}/live/{data.device_sn}"
-    relay_url = f"rtmp://{settings.video_rtmp_host}:{settings.video_rtmp_port}/live/{data.device_sn}"
-    rtsp_url = f"rtsp://{settings.video_rtmp_host}:{settings.video_rtmp_port}/live_{data.device_sn}"
+    # 上行媒体流
+    up_rtmp_url = f"rtmp://{settings.video_rtmp_host}:{settings.video_rtmp_port}/live/{data.device_sn}"
+    # 下行媒体流
+    dn_rtmp_url = f"rtmp://{settings.audio_rtmp_host}:{settings.audio_rtmp_port}/live/{data.device_sn}"
+    dn_rtsp_url = f"rtsp://{settings.audio_rtmp_host}:{settings.audio_rtsp_port}/live_{data.device_sn}"
+    
 
     # 启动合流转推
     response = rtc_client.start_push_mixed_stream(
         room_id=data.room_id,
         user_id=data.user_id,  # 排除的用户ID
         task_id=data.device_sn,
-        push_url=rtmp_url,
+        push_url=dn_rtmp_url,
     )
 
     logger.info(f"启动合流转推: {response}")
@@ -47,7 +50,7 @@ async def handle_camera_join_room(request: RequestMessageBase, req_data: Dict[st
         room_id=data.room_id,
         user_id=data.user_id,  # 在线媒体流输入的用户ID
         task_id=data.device_sn,
-        stream_url=relay_url,
+        stream_url=up_rtmp_url,
     )
 
     logger.info(f"启动在线媒体流输入: {response}")
@@ -64,8 +67,8 @@ async def handle_camera_join_room(request: RequestMessageBase, req_data: Dict[st
     '''
 
     data = CameraJoinResponse(
-        rtmp_url=rtmp_url,
-        rtsp_url=rtsp_url,
+        rtmp_url=up_rtmp_url,
+        rtsp_url=dn_rtsp_url,
     )
 
     return ResponseMessageBase(type=request.type, data=data)
