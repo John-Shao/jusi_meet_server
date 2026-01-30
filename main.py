@@ -3,7 +3,7 @@ from typing import AsyncGenerator
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app import app_router
+from drift_api import drift_router
 from meeting_api import meeting_router
 from config import settings
 from log_mw import RequestLoggingMiddleware
@@ -64,13 +64,13 @@ app.add_middleware(
 app.add_middleware(RequestLoggingMiddleware)
 
 # 注册路由
-app.include_router(app_router, prefix=settings.api_prefix, tags=["JUSI Meeting Server"])
+app.include_router(drift_router, prefix=settings.api_prefix, tags=["Drift Server"])
 app.include_router(meeting_router, prefix=settings.api_prefix, tags=["Meeting Management"])
 
 # 处理根路径请求
 @app.get("/")
 async def root():
-    return {"message": "JUSI Meeting RTS Server"}
+    return {"message": "JUSI Meeting Server"}
 
 # 启动应用
 if __name__ == "__main__":

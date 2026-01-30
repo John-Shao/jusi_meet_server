@@ -9,12 +9,6 @@ class MessageType(StrEnum):
     CameraJoinRoom = "CameraJoinRoom"
     CameraLeaveRoom = "CameraLeaveRoom"
 
-# 请求消息模型
-class RequestMessageBase(BaseModel):
-    type: str
-    timestamp: int = Field(default_factory=lambda: current_timestamp_ms())  # 时间戳ms
-    data: Optional[Any] = {}
-
 # 响应消息模型
 class ResponseMessageBase(BaseModel):
     type: str

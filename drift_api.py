@@ -10,24 +10,12 @@ from schemas import *
 
 logger = logging.getLogger(__name__)
 
-app_router = APIRouter()
-
-# 处理APP请求
-@app_router.post("/app", response_model=ResponseMessageBase)
-async def handle_app_request(request: RequestMessageBase):
-
-    # 根据不同的事件名称处理不同的消息
-    handler = REQUEST_HANDLERS.get(request.type)
-    if handler:
-        return await handler(request, request.data)
-    else:
-        logger.warning(f"收到未知事件消息: {request.type}")
-        return ResponseMessageBase(type=request.type, code=400, message="未知事件类型")
+drift_router = APIRouter()
 
 
-# 处理用户加入房间事件
-async def handle_camera_join_room(request: RequestMessageBase, req_data: Dict[str, Any]):
-    data = CameraJoinRequest(**req_data)
+# 摄像头加入房间接口
+@drift_router.post("/camera/join", response_model=ResponseMessageBase)
+async def camera_join_room(data: CameraJoinRequest):
     # 上行媒体流
     up_rtmp_url = f"rtmp://{settings.video_rtmp_host}:{settings.video_rtmp_port}/live/{data.device_sn}"
     # 下行媒体流
@@ -66,24 +54,25 @@ async def handle_camera_join_room(request: RequestMessageBase, req_data: Dict[st
         )
         '''
 
-        data = CameraJoinResponse(
+        response_data = CameraJoinResponse(
             rtmp_url=up_rtmp_url,
             rtsp_url=dn_rtsp_url,
         )
 
-        return ResponseMessageBase(type=request.type, data=data)
+        return ResponseMessageBase(type=MessageType.CameraJoinRoom, data=response_data)
 
     except Exception as e:
         logger.error(f"处理CameraJoinRoom请求失败: {str(e)}")
         return ResponseMessageBase(
-            type=request.type,
+            type=MessageType.CameraJoinRoom,
             code=500,
             message=f"启动RTC服务失败: {str(e)}"
         )
 
 
-async def handle_camera_leave_room(request: RequestMessageBase, req_data: Dict[str, Any]):
-    data = CameraLeaveRequest(**req_data)
+# 摄像头离开房间接口
+@drift_router.post("/camera/leave", response_model=ResponseMessageBase)
+async def camera_leave_room(data: CameraLeaveRequest):
 
     try:
         # 停止合流转推
@@ -111,19 +100,12 @@ async def handle_camera_leave_room(request: RequestMessageBase, req_data: Dict[s
 
         logger.info(f"关闭实时对话式AI: {response}")
         '''
-        return ResponseMessageBase(type=request.type)
+        return ResponseMessageBase(type=MessageType.CameraLeaveRoom)
 
     except Exception as e:
         logger.error(f"处理CameraLeaveRoom请求失败: {str(e)}")
         return ResponseMessageBase(
-            type=request.type,
+            type=MessageType.CameraLeaveRoom,
             code=500,
             message=f"停止RTC服务失败: {str(e)}"
         )
-
-
-# 处理程序映射
-REQUEST_HANDLERS = {
-    MessageType.CameraJoinRoom: handle_camera_join_room,
-    MessageType.CameraLeaveRoom: handle_camera_leave_room,
-}
