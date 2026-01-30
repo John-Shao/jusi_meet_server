@@ -27,14 +27,22 @@ async def call_rts_service(method: str, endpoint: str, data: dict = None) -> dic
     Returns:
         响应数据
     """
-    url = f"{settings.rts_service_url}{settings.api_prefix}/{endpoint}"
+    url = f"{settings.rts_service_url}{settings.api_prefix}{endpoint}"
+
+    logger.info(f"调用RTS服务: {method} {url} 数据: {data}")
+
+    # 设置请求头
+    headers = {
+        "Content-Type": "application/json"
+    }
 
     try:
-        async with httpx.AsyncClient(timeout=10.0) as client:
+        # 禁用代理，避免 localhost 请求被系统代理拦截
+        async with httpx.AsyncClient(timeout=10.0, trust_env=False) as client:
             if method == "POST":
-                response = await client.post(url, json=data)
+                response = await client.post(url, json=data, headers=headers)
             else:
-                response = await client.get(url, params=data)
+                response = await client.get(url, params=data, headers=headers)
 
             response.raise_for_status()
             return response.json()
@@ -61,9 +69,20 @@ async def book_meeting(request: BookMeetingRequest):
     try:
         result = await call_rts_service(
             "POST",
-            "meeting/book",
+            "/meeting/book",
             request.model_dump()
         )
+
+        # 检查 RTS 服务是否返回错误
+        if result.get("code") != 200 and "room_id" not in result:
+            error_msg = result.get("message", "RTS服务返回错误")
+            logger.error(f"RTS服务返回错误: {error_msg}")
+            return BookMeetingResponse(
+                code=500,
+                room_id=request.room_id,
+                room_name=request.room_name or request.room_id,
+                message=error_msg
+            )
 
         return BookMeetingResponse(**result)
     except Exception as e:
@@ -91,9 +110,19 @@ async def cancel_meeting(request: CancelMeetingRequest):
     try:
         result = await call_rts_service(
             "POST",
-            "meeting/cancel",
+            "/meeting/cancel",
             request.model_dump()
         )
+
+        # 检查 RTS 服务是否返回错误
+        if result.get("code") != 200 and "room_id" not in result:
+            error_msg = result.get("message", "RTS服务返回错误")
+            logger.error(f"RTS服务返回错误: {error_msg}")
+            return CancelMeetingResponse(
+                code=500,
+                room_id=request.room_id,
+                message=error_msg
+            )
 
         return CancelMeetingResponse(**result)
     except Exception as e:
@@ -120,9 +149,20 @@ async def get_my_meetings(request: GetMyMeetingsRequest):
     try:
         result = await call_rts_service(
             "POST",
-            "meeting/get-my",
+            "/meeting/get-my",
             request.model_dump()
         )
+
+        # 检查 RTS 服务是否返回错误
+        if result.get("code") != 200 and "meetings" not in result:
+            error_msg = result.get("message", "RTS服务返回错误")
+            logger.error(f"RTS服务返回错误: {error_msg}")
+            return GetMyMeetingsResponse(
+                code=500,
+                meetings=[],
+                total=0,
+                message=error_msg
+            )
 
         return GetMyMeetingsResponse(**result)
     except Exception as e:
@@ -136,7 +176,7 @@ async def get_my_meetings(request: GetMyMeetingsRequest):
 
 
 # 检查房间是否存在
-@meeting_router.post("meeting/check-room", response_model=CheckRoomResponse)
+@meeting_router.post("/meeting/check-room", response_model=CheckRoomResponse)
 async def check_room(request: CheckRoomRequest):
     """
     检查房间号是否存在
@@ -150,9 +190,20 @@ async def check_room(request: CheckRoomRequest):
     try:
         result = await call_rts_service(
             "POST",
-            "meeting/check-room",
+            "/meeting/check-room",
             request.model_dump()
         )
+
+        # 检查 RTS 服务是否返回错误
+        if result.get("code") != 200 and "room_id" not in result:
+            error_msg = result.get("message", "RTS服务返回错误")
+            logger.error(f"RTS服务返回错误: {error_msg}")
+            return CheckRoomResponse(
+                code=500,
+                room_id=request.room_id,
+                exists=False,
+                message=error_msg
+            )
 
         return CheckRoomResponse(**result)
     except Exception as e:
@@ -166,7 +217,7 @@ async def check_room(request: CheckRoomRequest):
 
 
 # 检查用户是否在房间中
-@meeting_router.post("meeting/check-user-in-room", response_model=CheckUserInRoomResponse)
+@meeting_router.post("/meeting/check-user-in-room", response_model=CheckUserInRoomResponse)
 async def check_user_in_room(request: CheckUserInRoomRequest):
     """
     检查用户是否在某个会议中
@@ -180,9 +231,21 @@ async def check_user_in_room(request: CheckUserInRoomRequest):
     try:
         result = await call_rts_service(
             "POST",
-            "meeting/check-user-in-room",
+            "/meeting/check-user-in-room",
             request.model_dump()
         )
+
+        # 检查 RTS 服务是否返回错误
+        if result.get("code") != 200 and "in_room" not in result:
+            error_msg = result.get("message", "RTS服务返回错误")
+            logger.error(f"RTS服务返回错误: {error_msg}")
+            return CheckUserInRoomResponse(
+                code=500,
+                room_id=request.room_id,
+                user_id=request.user_id,
+                in_room=False,
+                message=error_msg
+            )
 
         return CheckUserInRoomResponse(**result)
     except Exception as e:
