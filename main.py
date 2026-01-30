@@ -4,6 +4,7 @@ from typing import AsyncGenerator
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app import app_router
+from meeting_api import meeting_router
 from config import settings
 from log_mw import RequestLoggingMiddleware
 import uvicorn
@@ -64,6 +65,7 @@ app.add_middleware(RequestLoggingMiddleware)
 
 # 注册路由
 app.include_router(app_router, prefix=settings.api_prefix, tags=["JUSI Meeting Server"])
+app.include_router(meeting_router, prefix=settings.api_prefix, tags=["Meeting Management"])
 
 # 处理根路径请求
 @app.get("/")

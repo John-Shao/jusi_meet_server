@@ -35,6 +35,9 @@ class Settings(BaseSettings):
     bind_addr: str = "0.0.0.0"
     bind_port: int = 9006
     debug: bool = True
+
+    # RTS 服务配置
+    rts_service_url: str = "http://localhost:9000"  # jusi_meet_rts 服务地址
     
     # 指定配置文件和相关参数
     class Config:
