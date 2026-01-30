@@ -33,75 +33,93 @@ async def handle_camera_join_room(request: RequestMessageBase, req_data: Dict[st
     # 下行媒体流
     dn_rtmp_url = f"rtmp://{settings.audio_rtmp_host}:{settings.audio_rtmp_port}/live/{data.device_sn}"
     dn_rtsp_url = f"rtsp://{settings.audio_rtmp_host}:{settings.audio_rtsp_port}/live_{data.device_sn}"
-    
 
-    # 启动合流转推
-    response = rtc_client.start_push_mixed_stream(
-        room_id=data.room_id,
-        user_id=data.user_id,  # 排除的用户ID
-        task_id=data.device_sn,
-        push_url=dn_rtmp_url,
-    )
+    try:
+        # 启动合流转推
+        response = rtc_client.start_push_mixed_stream(
+            room_id=data.room_id,
+            user_id=data.user_id,  # 排除的用户ID
+            task_id=data.device_sn,
+            push_url=dn_rtmp_url,
+        )
 
-    logger.info(f"启动合流转推: {response}")
-    
-    # 启动在线媒体流输入
-    response = rtc_client.start_relay_stream(
-        room_id=data.room_id,
-        user_id=data.user_id,  # 在线媒体流输入的用户ID
-        task_id=data.device_sn,
-        stream_url=up_rtmp_url,
-    )
+        logger.info(f"启动合流转推: {response}")
 
-    logger.info(f"启动在线媒体流输入: {response}")
+        # 启动在线媒体流输入
+        response = rtc_client.start_relay_stream(
+            room_id=data.room_id,
+            user_id=data.user_id,  # 在线媒体流输入的用户ID
+            task_id=data.device_sn,
+            stream_url=up_rtmp_url,
+        )
 
-    # 启动实时对话式AI
-    '''
-    response = rtc_client.start_voice_chat(
-        room_id=data.room_id,
-        bot_id=data.device_sn,
-        user_id=data.user_id,
-        task_id=data.device_sn,
-        dialog_id=data.device_sn,
-    )
-    '''
+        logger.info(f"启动在线媒体流输入: {response}")
 
-    data = CameraJoinResponse(
-        rtmp_url=up_rtmp_url,
-        rtsp_url=dn_rtsp_url,
-    )
+        # 启动实时对话式AI
+        '''
+        response = rtc_client.start_voice_chat(
+            room_id=data.room_id,
+            bot_id=data.device_sn,
+            user_id=data.user_id,
+            task_id=data.device_sn,
+            dialog_id=data.device_sn,
+        )
+        '''
 
-    return ResponseMessageBase(type=request.type, data=data)
+        data = CameraJoinResponse(
+            rtmp_url=up_rtmp_url,
+            rtsp_url=dn_rtsp_url,
+        )
+
+        return ResponseMessageBase(type=request.type, data=data)
+
+    except Exception as e:
+        logger.error(f"处理CameraJoinRoom请求失败: {str(e)}")
+        return ResponseMessageBase(
+            type=request.type,
+            code=500,
+            message=f"启动RTC服务失败: {str(e)}"
+        )
 
 
 async def handle_camera_leave_room(request: RequestMessageBase, req_data: Dict[str, Any]):
     data = CameraLeaveRequest(**req_data)
-    # 停止合流转推
-    response = rtc_client.stop_push_stream_to_cdn(
-        room_id=data.room_id,
-        task_id=data.device_sn
-    )
 
-    logger.info(f"停止合流转推: {response}")
+    try:
+        # 停止合流转推
+        response = rtc_client.stop_push_stream_to_cdn(
+            room_id=data.room_id,
+            task_id=data.device_sn
+        )
 
-    # 停止在线媒体流输入
-    response = rtc_client.stop_relay_stream(
-        room_id=data.room_id,
-        task_id=data.device_sn
-    )
+        logger.info(f"停止合流转推: {response}")
 
-    logger.info(f"停止在线媒体流输入: {response}")
+        # 停止在线媒体流输入
+        response = rtc_client.stop_relay_stream(
+            room_id=data.room_id,
+            task_id=data.device_sn
+        )
 
-    # 关闭实时对话式AI
-    '''
-    response = rtc_client.stop_voice_chat(
-        room_id=data.room_id,
-        task_id=data.device_sn
-    )
+        logger.info(f"停止在线媒体流输入: {response}")
 
-    logger.info(f"关闭实时对话式AI: {response}")
-    '''
-    return ResponseMessageBase(type=request.type)
+        # 关闭实时对话式AI
+        '''
+        response = rtc_client.stop_voice_chat(
+            room_id=data.room_id,
+            task_id=data.device_sn
+        )
+
+        logger.info(f"关闭实时对话式AI: {response}")
+        '''
+        return ResponseMessageBase(type=request.type)
+
+    except Exception as e:
+        logger.error(f"处理CameraLeaveRoom请求失败: {str(e)}")
+        return ResponseMessageBase(
+            type=request.type,
+            code=500,
+            message=f"停止RTC服务失败: {str(e)}"
+        )
 
 
 # 处理程序映射
